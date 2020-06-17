@@ -4,6 +4,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"reflect"
+	"sort"
 	"sync"
 	"time"
 
@@ -454,9 +455,12 @@ func (w *Watcher) genCfg() Config {
 		}
 		for _, s := range up.Nodes {
 			serviceInstancesTotal++
-			host := s.Service.Address
-			if host == "" {
-				host = s.Node.Address
+
+			name := s.Node.Node
+
+			address := s.Service.Address
+			if address == "" {
+				address = s.Node.Address
 			}
 
 			weight := 1
@@ -474,11 +478,16 @@ func (w *Watcher) genCfg() Config {
 			serviceInstancesAlive++
 
 			upstream.Nodes = append(upstream.Nodes, UpstreamNode{
-				Host:   host,
-				Port:   s.Service.Port,
-				Weight: weight,
+				Name:    name,
+				Address: address,
+				Port:    s.Service.Port,
+				Weight:  weight,
 			})
 		}
+
+		sort.Slice(upstream.Nodes, func(i, j int) bool {
+			return upstream.Nodes[i].Name < upstream.Nodes[j].Name
+		})
 
 		config.Upstreams = append(config.Upstreams, upstream)
 	}
