@@ -1,0 +1,11 @@
+global
+    master-worker
+    stats socket {{.SocketPath}} mode 600 level admin expose-fd listeners
+    stats timeout 2m
+    tune.ssl.default-dh-param 1024
+    nbproc 1
+    nbthread {{.NbThread}}
+    log-tag haproxy_sidecar
+
+userlist controller
+    user {{.DataplaneUser}} insecure-password {{.DataplanePass}}

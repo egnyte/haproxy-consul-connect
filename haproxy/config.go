@@ -20,7 +20,7 @@ const (
 
 var dataplanePass string
 
-var baseCfgTmpl = `
+var hardcodedCfgTemplate = `
 global
 	master-worker
     stats socket {{.SocketPath}} mode 600 level admin expose-fd listeners
@@ -71,10 +71,10 @@ type haConfig struct {
 	LogsSock                string
 }
 
-func newHaConfig(baseDir string, sd *lib.Shutdown) (*haConfig, error) {
+func newHaConfig(opts Options, sd *lib.Shutdown) (*haConfig, error) {
 	cfg := &haConfig{}
 
-	configsDir, err := newTempDirForConfig(baseDir, sd)
+	configsDir, err := newTempDirForConfig(opts.ConfigBaseDir, sd)
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +88,7 @@ func newHaConfig(baseDir string, sd *lib.Shutdown) (*haConfig, error) {
 	cfg.DataplaneTransactionDir = path.Join(configsDir, "dataplane-transactions")
 	cfg.LogsSock = path.Join(configsDir, "logs.sock")
 
-	err = newHAproxyConfig(cfg, sd)
+	err = newHAproxyConfig(opts, cfg, sd)
 	if err != nil {
 		return nil, err
 	}
@@ -119,9 +119,19 @@ func newTempDirForConfig(baseDir string, sd *lib.Shutdown) (string, error) {
 	return tempConfigsDir, nil
 }
 
-func newHAproxyConfig(cfg *haConfig, sd *lib.Shutdown) error {
+func newHAproxyConfig(opts Options, cfg *haConfig, sd *lib.Shutdown) error {
 
-	tmpl, err := template.New("cfg").Parse(baseCfgTmpl)
+	var cfgTemplate string
+	if opts.HaproxyCfgTemplate == "" {
+		cfgTemplate = hardcodedCfgTemplate
+	} else {
+		content, err := ioutil.ReadFile(opts.HaproxyCfgTemplate)
+		if err != nil {
+			log.Fatal(err)
+		}
+		cfgTemplate = string(content)
+	}
+	tmpl, err := template.New("cfg").Parse(cfgTemplate)
 	if err != nil {
 		return err
 	}

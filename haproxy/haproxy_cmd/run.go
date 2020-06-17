@@ -26,6 +26,7 @@ type Config struct {
 	HAProxyPath             string
 	HAProxyConfigPath       string
 	HAProxyLogWithThisApp   bool
+	HaproxyCfgTemplate      string
 	DataplanePath           string
 	DataplaneTransactionDir string
 	DataplaneSock           string

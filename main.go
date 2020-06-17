@@ -92,6 +92,7 @@ func main() {
 	haproxyCfgBasePath := flag.String("haproxy-cfg-base-path", "/tmp", "Generated Haproxy configs path")
 	haproxyLogRequests := flag.Bool("haproxy-log-requests", false, "Enable logging requests by Haproxy")
 	haproxyLogAddress := flag.String("haproxy-log-address", "", "Address for Haproxy logs (default stderr with this app logs)")
+	haproxyCfgTemplate := flag.String("haproxy-cfg-template", "", "HAproxy config template to use")
 	logLevel := flag.String("log-level", "INFO", "This app log level")
 	statsListenAddr := flag.String("stats-addr", "", "Listen addr for stats server")
 	statsServiceRegister := flag.Bool("stats-service-register", false, "Register a consul service for connect stats")
@@ -119,6 +120,8 @@ func main() {
 			log.Fatal(err)
 		}
 	}
+
+	// TODO: validate haproxyCfgTemplate
 
 	sd := lib.NewShutdown()
 
@@ -172,6 +175,7 @@ func main() {
 		HAProxyBin:           *haproxyBin,
 		DataplaneBin:         *dataplaneBin,
 		ConfigBaseDir:        *haproxyCfgBasePath,
+		HaproxyCfgTemplate:   *haproxyCfgTemplate,
 		EnableIntentions:     *enableIntentions,
 		StatsListenAddr:      *statsListenAddr,
 		StatsRegisterService: *statsServiceRegister,

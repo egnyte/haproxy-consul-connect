@@ -54,7 +54,7 @@ func (h *HAProxy) Run(sd *lib.Shutdown) error {
 }
 
 func (h *HAProxy) start(sd *lib.Shutdown) error {
-	hc, err := newHaConfig(h.opts.ConfigBaseDir, sd)
+	hc, err := newHaConfig(h.opts, sd)
 	if err != nil {
 		return err
 	}
@@ -80,6 +80,7 @@ func (h *HAProxy) start(sd *lib.Shutdown) error {
 		HAProxyPath:             h.opts.HAProxyBin,
 		HAProxyConfigPath:       hc.HAProxy,
 		HAProxyLogWithThisApp:   h.opts.HAProxyLogAddress == "",
+		HaproxyCfgTemplate:      h.opts.HaproxyCfgTemplate,
 		DataplanePath:           h.opts.DataplaneBin,
 		DataplaneTransactionDir: hc.DataplaneTransactionDir,
 		DataplaneSock:           hc.DataplaneSock,
