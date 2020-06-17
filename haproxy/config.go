@@ -132,11 +132,13 @@ func newHAproxyConfig(cfg *haConfig, sd *lib.Shutdown) error {
 	}
 	defer cfgFile.Close()
 
+	dataplanePass = createRandomString()
+
 	err = tmpl.Execute(cfgFile, baseParams{
 		NbThread:      runtime.GOMAXPROCS(0),
 		SocketPath:    cfg.StatsSock,
 		DataplaneUser: dataplaneUser,
-		DataplanePass: createRandomString(),
+		DataplanePass: dataplanePass,
 	})
 	if err != nil {
 		sd.Done()
