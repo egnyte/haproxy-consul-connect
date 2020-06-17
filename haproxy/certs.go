@@ -13,7 +13,7 @@ import (
 func (h *haConfig) FilePath(content []byte) (string, error) {
 	sum := sha256.Sum256(content)
 
-	path := path.Join(h.Base, hex.EncodeToString(sum[:]))
+	path := path.Join(h.ConfigsDir, hex.EncodeToString(sum[:]))
 
 	_, err := os.Stat(path)
 	if err != nil && !os.IsNotExist(err) {

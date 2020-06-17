@@ -61,7 +61,7 @@ type baseParams struct {
 }
 
 type haConfig struct {
-	Base                    string
+	ConfigsDir              string
 	HAProxy                 string
 	SPOE                    string
 	SPOESock                string
@@ -74,66 +74,93 @@ type haConfig struct {
 func newHaConfig(baseDir string, sd *lib.Shutdown) (*haConfig, error) {
 	cfg := &haConfig{}
 
+	configsDir, err := newTempDirForConfig(baseDir, sd)
+	if err != nil {
+		return nil, err
+	}
+
+	cfg.ConfigsDir = configsDir
+	cfg.HAProxy = path.Join(configsDir, "haproxy.conf")
+	cfg.SPOE = path.Join(configsDir, "spoe.conf")
+	cfg.SPOESock = path.Join(configsDir, "spoe.sock")
+	cfg.StatsSock = path.Join(configsDir, "haproxy.sock")
+	cfg.DataplaneSock = path.Join(configsDir, "dataplane.sock")
+	cfg.DataplaneTransactionDir = path.Join(configsDir, "dataplane-transactions")
+	cfg.LogsSock = path.Join(configsDir, "logs.sock")
+
+	err = newHAproxyConfig(cfg, sd)
+	if err != nil {
+		return nil, err
+	}
+
+	err = newSPOEConfig(cfg, sd)
+	if err != nil {
+		return nil, err
+	}
+
+	return cfg, nil
+}
+
+func newTempDirForConfig(baseDir string, sd *lib.Shutdown) (string, error) {
+
 	sd.Add(1)
-	base, err := ioutil.TempDir(baseDir, "haproxy-connect-")
+	tempConfigsDir, err := ioutil.TempDir(baseDir, "haproxy-connect-")
 	if err != nil {
 		sd.Done()
-		return nil, err
+		return "", err
 	}
 	go func() {
 		defer sd.Done()
 		<-sd.Stop
 		log.Info("cleaning config...")
-		os.RemoveAll(base)
+		os.RemoveAll(tempConfigsDir)
 	}()
 
-	cfg.Base = base
+	return tempConfigsDir, nil
+}
 
-	cfg.HAProxy = path.Join(base, "haproxy.conf")
-	cfg.SPOE = path.Join(base, "spoe.conf")
-	cfg.SPOESock = path.Join(base, "spoe.sock")
-	cfg.StatsSock = path.Join(base, "haproxy.sock")
-	cfg.DataplaneSock = path.Join(base, "dataplane.sock")
-	cfg.DataplaneTransactionDir = path.Join(base, "dataplane-transactions")
-	cfg.LogsSock = path.Join(base, "logs.sock")
+func newHAproxyConfig(cfg *haConfig, sd *lib.Shutdown) error {
 
 	tmpl, err := template.New("cfg").Parse(baseCfgTmpl)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	cfgFile, err := os.OpenFile(cfg.HAProxy, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer cfgFile.Close()
-
-	dataplanePass = createRandomString()
 
 	err = tmpl.Execute(cfgFile, baseParams{
 		NbThread:      runtime.GOMAXPROCS(0),
 		SocketPath:    cfg.StatsSock,
 		DataplaneUser: dataplaneUser,
-		DataplanePass: dataplanePass,
+		DataplanePass: createRandomString(),
 	})
 	if err != nil {
 		sd.Done()
-		return nil, err
+		return err
 	}
+
+	return nil
+}
+
+func newSPOEConfig(cfg *haConfig, sd *lib.Shutdown) error {
 
 	spoeCfgFile, err := os.OpenFile(cfg.SPOE, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
 	if err != nil {
 		sd.Done()
-		return nil, err
+		return err
 	}
 	defer spoeCfgFile.Close()
 	_, err = spoeCfgFile.WriteString(spoeConfTmpl)
 	if err != nil {
 		sd.Done()
-		return nil, err
+		return err
 	}
 
-	return cfg, nil
+	return nil
 }
 
 func createRandomString() string {
