@@ -26,12 +26,18 @@ global
     stats socket {{.SocketPath}} mode 600 level admin expose-fd listeners
     stats timeout 2m
 	tune.ssl.default-dh-param 1024
+	log /dev/log local0 info alert
 	nbproc 1
 	nbthread {{.NbThread}}
 	log-tag haproxy_sidecar
 
 userlist controller
 	user {{.DataplaneUser}} insecure-password {{.DataplanePass}}
+
+defaults
+    mode http
+    log global
+    log-format "%ci:%cp [%tr] %ft %b/%s %TR/%Tw/%Tc/%Tr/%Ta %ST %B %CC %CS %tsc %ac/%fc/%bc/%sc/%rc %sq %bq %hr %hs %{+Q}r %U"
 `
 
 const spoeConfTmpl = `
@@ -107,7 +113,7 @@ func newHaConfig(baseDir string, sd *lib.Shutdown) (*haConfig, error) {
 		return nil, err
 	}
 	defer cfgFile.Close()
-
+    log.Info(" !!! Config HAProxy Path :::-  ", cfg.HAProxy)
 	dataplanePass = createRandomString()
 
 	err = tmpl.Execute(cfgFile, baseParams{
